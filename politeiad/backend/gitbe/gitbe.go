@@ -2122,6 +2122,13 @@ func (g *gitBackEnd) Inventory(vettedCount, branchCount uint, includeFiles bool)
 	return pr, br, nil
 }
 
+// GetPlugins returns the decred plugin settings.
+//
+// GetPlugins satisfies the backend interface.
+func (g *gitBackEnd) GetPlugins() ([]backend.Plugin, error) {
+	return []backend.Plugin{decredPlugin}, nil
+}
+
 // Close shuts down the backend.  It obtains the lock and sets the shutdown
 // boolean to true.  All interface functions MUST return with errShutdown if
 // the backend is shutting down.
