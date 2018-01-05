@@ -198,7 +198,7 @@ func printRecordRecord(header string, pr v1.Record) {
 	}
 }
 
-func plugins() (*v1.PluginInventoryReply, error) {
+func pluginInventory() (*v1.PluginInventoryReply, error) {
 	challenge, err := util.Random(v1.ChallengeSize)
 	if err != nil {
 		return nil, err
@@ -260,8 +260,80 @@ func plugins() (*v1.PluginInventoryReply, error) {
 	return &ir, nil
 }
 
-func getPlugins() error {
-	pr, err := plugins()
+func plugin() error {
+	flags := flag.Args()[1:] // Chop off action.
+
+	if len(flags) != 4 {
+		return fmt.Errorf("not enough parameters")
+	}
+
+	challenge, err := util.Random(v1.ChallengeSize)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(v1.PluginCommand{
+		Challenge: hex.EncodeToString(challenge),
+		ID:        flags[0],
+		Command:   flags[1],
+		CommandID: flags[2],
+		Payload:   flags[3],
+	})
+	if err != nil {
+		return err
+	}
+
+	if *printJson {
+		fmt.Println(string(b))
+	}
+
+	c, err := util.NewClient(verify, *rpccert)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", *rpchost+v1.PluginCommandRoute,
+		bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(*rpcuser, *rpcpass)
+	r, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+	if r.StatusCode != http.StatusOK {
+		e, err := getErrorFromResponse(r)
+		if err != nil {
+			return fmt.Errorf("%v", r.Status)
+		}
+		return fmt.Errorf("%v: %v", r.Status, e)
+	}
+
+	bodyBytes := util.ConvertBodyToByteArray(r.Body, *printJson)
+
+	var pcr v1.PluginCommandReply
+	err = json.Unmarshal(bodyBytes, &pcr)
+	if err != nil {
+		return fmt.Errorf("Could node unmarshal "+
+			"PluginCommandReply: %v", err)
+	}
+
+	// Fetch remote identity
+	id, err := identity.LoadPublicIdentity(*identityFilename)
+	if err != nil {
+		return err
+	}
+
+	err = util.VerifyChallenge(id, challenge, pcr.Response)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getPluginInventory() error {
+	pr, err := pluginInventory()
 	if err != nil {
 		return err
 	}
@@ -1109,8 +1181,10 @@ func _main() error {
 				return newRecord()
 			case "identity":
 				return getIdentity()
-			case "plugins":
-				return getPlugins()
+			case "plugin":
+				return plugin()
+			case "plugininventory":
+				return getPluginInventory()
 			case "inventory":
 				return inventory()
 			case "getunvetted":

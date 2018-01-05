@@ -30,10 +30,10 @@ const (
 	GetVettedRoute            = "/v1/getvetted/"      // Retrieve vetted record
 
 	// Auth required
-	InventoryRoute         = "/v1/inventory/"           // Inventory records
-	SetUnvettedStatusRoute = "/v1/setunvettedstatus/"   // Set unvetted status
-	PluginRoute            = "/v1/plugin/"              // Send a command to a plugin
-	PluginInventoryRoute   = PluginRoute + "inventory/" // Inventory all plugins
+	InventoryRoute         = "/v1/inventory/"                  // Inventory records
+	SetUnvettedStatusRoute = "/v1/setunvettedstatus/"          // Set unvetted status
+	PluginCommandRoute     = "/v1/plugin/"                     // Send a command to a plugin
+	PluginInventoryRoute   = PluginCommandRoute + "inventory/" // Inventory all plugins
 
 	ChallengeSize      = 32         // Size of challenge token in bytes
 	TokenSize          = 32         // Size of token
@@ -377,4 +377,22 @@ type PluginInventory struct {
 type PluginInventoryReply struct {
 	Response string   `json:"response"` // Challenge response
 	Plugins  []Plugin `json:"plugins"`  // Plugins and their settings
+}
+
+// PluginCommand sends a command to a plugin.
+type PluginCommand struct {
+	Challenge string `json:"challenge"` // Random challenge
+	ID        string `json:"id"`        // Plugin identifier
+	Command   string `json:"command"`   // Command identifier
+	CommandID string `json:"commandid"` // User setable command identifier
+	Payload   string `json:"payload"`   // Actual command
+}
+
+// PluginCommandReply is the reply to a PluginCommand.
+type PluginCommandReply struct {
+	Response  string `json:"response"`  // Challenge response
+	ID        string `json:"id"`        // Plugin identifier
+	Command   string `json:"command"`   // Command identifier
+	CommandID string `json:"commandid"` // User setable command identifier
+	Payload   string `json:"payload"`   // Actual command reply
 }

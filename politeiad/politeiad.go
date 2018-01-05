@@ -673,7 +673,8 @@ func (p *politeia) pluginInventory(w http.ResponseWriter, r *http.Request) {
 	var pi v1.PluginInventory
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&pi); err != nil {
-		p.respondWithUserError(w, v1.ErrorStatusInvalidRequestPayload, nil)
+		p.respondWithUserError(w, v1.ErrorStatusInvalidRequestPayload,
+			nil)
 		return
 	}
 	defer r.Body.Close()
@@ -696,7 +697,37 @@ func (p *politeia) pluginInventory(w http.ResponseWriter, r *http.Request) {
 	util.RespondWithJSON(w, http.StatusOK, reply)
 }
 
-func (p *politeia) plugin(w http.ResponseWriter, r *http.Request) {
+func (p *politeia) pluginCommand(w http.ResponseWriter, r *http.Request) {
+	var pc v1.PluginCommand
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&pc); err != nil {
+		p.respondWithUserError(w, v1.ErrorStatusInvalidRequestPayload,
+			nil)
+		return
+	}
+	defer r.Body.Close()
+
+	challenge, err := hex.DecodeString(pc.Challenge)
+	if err != nil || len(challenge) != v1.ChallengeSize {
+		p.respondWithUserError(w, v1.ErrorStatusInvalidChallenge, nil)
+		return
+	}
+
+	cid, payload, err := p.backend.Plugin(pc.Command, pc.Payload)
+	if err != nil {
+		return
+	}
+
+	response := p.identity.SignMessage(challenge)
+	reply := v1.PluginCommandReply{
+		Response:  hex.EncodeToString(response[:]),
+		ID:        pc.ID,
+		Command:   cid,
+		CommandID: pc.CommandID,
+		Payload:   payload,
+	}
+
+	util.RespondWithJSON(w, http.StatusOK, reply)
 }
 
 // getError returns the error that is embedded in a JSON reply.
@@ -859,8 +890,8 @@ func _main() error {
 	}
 	if len(plugins) > 0 {
 		// Set plugin routes. Requires auth.
-		p.router.HandleFunc(v1.PluginRoute,
-			logging(p.auth(p.plugin))).Methods("POST")
+		p.router.HandleFunc(v1.PluginCommandRoute,
+			logging(p.auth(p.pluginCommand))).Methods("POST")
 		p.router.HandleFunc(v1.PluginInventoryRoute,
 			logging(p.auth(p.pluginInventory))).Methods("POST")
 

@@ -2129,6 +2129,15 @@ func (g *gitBackEnd) GetPlugins() ([]backend.Plugin, error) {
 	return []backend.Plugin{decredPlugin}, nil
 }
 
+// Plugin send a passthrough command.
+func (g *gitBackEnd) Plugin(command string, payload interface{}) (string, interface{}, error) {
+	switch command {
+	default:
+		return "", nil, fmt.Errorf("invalid payload command")
+	}
+	return "", nil, fmt.Errorf("plugin not yet")
+}
+
 // Close shuts down the backend.  It obtains the lock and sets the shutdown
 // boolean to true.  All interface functions MUST return with errShutdown if
 // the backend is shutting down.

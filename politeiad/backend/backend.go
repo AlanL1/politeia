@@ -141,6 +141,9 @@ type Backend interface {
 	// Obtain plugin settings
 	GetPlugins() ([]Plugin, error)
 
+	// Pligin pass-through command
+	Plugin(string, string) (string, string, error)
+
 	// Close performs cleanup of the backend.
 	Close()
 }
